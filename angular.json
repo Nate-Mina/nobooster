@@ -55,6 +55,11 @@
               ],
               "outputHashing": "all"
             },
+            "gh-pages": {
+              "outputMode": "static",
+              "ssr": false,
+              "prerender": true
+            },
             "development": {
               "optimization": false,
               "extractLicenses": false,

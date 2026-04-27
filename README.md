@@ -1,20 +1,25 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Clepto Trap AI Security
 
-# Run and deploy your AI Studio app
+Behavioral detection system using AI to identify shoplifting and suspicious activity in real-time.
 
-This contains everything you need to run your app locally.
+## Features
+- Real-time video analysis using Gemini AI.
+- Behavioral detection for shoplifting and falls.
+- Automated security logs recorded to Firebase.
+- Security Digest summaries.
 
-View your app in AI Studio: https://ai.studio/apps/ae2469c3-4a7a-4ab9-9330-144220e4eb47
+## Deployment to GitHub Pages
 
-## Run Locally
+This project is configured to automatically deploy to GitHub Pages via GitHub Actions.
 
-**Prerequisites:**  Node.js
+### Steps to enable:
+1. Push this code to your GitHub repository.
+2. Go to **Settings > Secrets and variables > Actions** in your GitHub repo.
+3. Add a **New repository secret**:
+   - Name: `GEMINI_API_KEY`
+   - Value: Your Google Gemini API Key.
+4. The deployment will trigger automatically on pushes to the `main` branch.
+5. Once the workflow finishes, go to **Settings > Pages** and set the source to the `gh-pages` branch.
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Local Development
+Run `npm install` and then `npm run dev` to start the development server.

@@ -1,6 +1,6 @@
 {
-  "name": "Clepto Trap  2-27- AI Merch Security",
-  "description": "Real-time AI behavioral detection against shoplifters.",
+  "name": "Clepto Trap AI Security",
+  "description": "Behavioral detection system using AI to identify shoplifting and suspicious activity in real-time.",
   "requestFramePermissions": [
     "camera"
   ]

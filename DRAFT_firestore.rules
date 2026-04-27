@@ -39,10 +39,10 @@ service cloud.firestore {
       allow get: if isOwner(userId) && isValidId(userId);
       allow list: if isOwner(userId) && isValidId(userId);
       allow create: if isOwner(userId) && isValidId(userId) && isValidSecurityEvent(incoming());
-      // Audit Integrity: No updates or deletes allowed for security incidents.
+      // Audit Integrity: No updates or deletes allowed for reported incidents.
     }
     
-    // Connectivity check path
+    // Connectivity test path
     match /test/connection {
       allow get: if true;
     }

@@ -22,6 +22,53 @@ import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/aut
 import { collection, query, orderBy, limit, onSnapshot, addDoc, serverTimestamp, doc, getDocFromServer, Timestamp } from 'firebase/firestore';
 import { auth, db, googleAuthProvider } from './firebase';
 
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
 interface SecurityEvent {
   id: string;
   timestamp: Date;
@@ -107,11 +154,18 @@ export class App implements OnDestroy, OnInit {
   }
 
   async testConnection() {
+    const path = 'test/connection';
     try {
-      await getDocFromServer(doc(db, 'test', 'connection'));
+      await getDocFromServer(doc(db, path));
     } catch (error) {
       if(error instanceof Error && error.message.includes('the client is offline')) {
         console.error("Please check your Firebase configuration.");
+      }
+      // We don't necessarily throw here to avoid blocking app start, but we log the error info
+      try {
+        handleFirestoreError(error, OperationType.GET, path);
+      } catch(e) {
+        console.warn("Connection test failed (expected if doc missing, but check permissions):", e);
       }
     }
   }
@@ -129,7 +183,8 @@ export class App implements OnDestroy, OnInit {
   }
 
   subscribeToEvents(userId: string) {
-    const eventsRef = collection(db, 'users', userId, 'events');
+    const path = `users/${userId}/events`;
+    const eventsRef = collection(db, path);
     const q = query(eventsRef, orderBy('timestamp', 'desc'), limit(50));
     this.eventsUnsubscribe = onSnapshot(q, (snapshot) => {
       const data: SecurityEvent[] = [];
@@ -152,8 +207,7 @@ export class App implements OnDestroy, OnInit {
       });
       this.events.set(data);
     }, (error) => {
-       console.error("Error subscribing to events: ", error);
-       alert("Error fetching events. Please ensure your permissions are correct.");
+       handleFirestoreError(error, OperationType.LIST, path);
     });
   }
 
@@ -420,16 +474,21 @@ Return a JSON object with 'type', 'description' (detailed and actionable explana
           
           let finalEventId = newEvent.id;
           if (this.user()) {
-            // Save to Firestore
-            const eventsRef = collection(db, 'users', this.user()!.uid, 'events');
-            const docRef = await addDoc(eventsRef, {
-               type: newEvent.type,
-               description: newEvent.description,
-               confidence: newEvent.confidence,
-               imageUrl: newEvent.imageUrl,
-               timestamp: serverTimestamp()
-            });
-            finalEventId = docRef.id;
+            const path = `users/${this.user()!.uid}/events`;
+            try {
+              // Save to Firestore
+              const eventsRef = collection(db, path);
+              const docRef = await addDoc(eventsRef, {
+                 type: newEvent.type,
+                 description: newEvent.description,
+                 confidence: newEvent.confidence,
+                 imageUrl: newEvent.imageUrl,
+                 timestamp: serverTimestamp()
+              });
+              finalEventId = docRef.id;
+            } catch (error) {
+              handleFirestoreError(error, OperationType.CREATE, path);
+            }
           } else {
              // Local only mode
              newEvent.id = finalEventId;
